@@ -5,104 +5,52 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI旅程作成くん</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .loading { border-top-color: #3498db; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="max-w-md mx-auto bg-white min-h-screen shadow-lg pb-10">
-        <header class="bg-blue-600 text-white p-6 text-center shadow-md">
-            <h1 class="text-2xl font-bold">AI旅程作成くん</h1>
-            <p class="text-sm opacity-80">一瞬で理想の旅行プランを生成</p>
-        </header>
-        <main class="p-6 space-y-6">
-            <section class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                <label class="block text-xs font-bold text-yellow-700 mb-1">Gemini APIキー</label>
-                <input type="password" id="apiKey" placeholder="ここにAPIキーを貼り付け" class="w-full p-2 text-sm border rounded outline-none focus:ring-2 focus:ring-yellow-400">
-            </section>
-            <section class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">目的地</label>
-                    <input type="text" id="destination" placeholder="例：台湾、仙台、草津" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">日数</label>
-                        <select id="days" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="1泊2日">1泊2日</option>
-                            <option value="2泊3日">2泊3日</option>
-                            <option value="日帰り">日帰り</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">テーマ</label>
-                        <select id="theme" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="グルメ巡り">グルメ巡り</option>
-                            <option value="定番観光">定番観光</option>
-                            <option value="リラックス">リラックス</option>
-                        </select>
-                    </div>
-                </div>
-                <button onclick="generatePlan()" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-95 disabled:opacity-50">
-                    旅程を自動生成する
-                </button>
-            </section>
-            <div id="loader" class="hidden flex flex-col items-center py-10">
-                <div class="loading w-10 h-10 border-4 border-gray-200 rounded-full mb-4"></div>
-                <p class="text-gray-500 text-sm font-bold">AIがプランを練っています...</p>
-            </div>
-            <section id="resultArea" class="hidden space-y-4">
-                <h2 class="text-xl font-bold text-gray-800 border-b-2 border-blue-500 pb-1 mx-2">作成された旅程</h2>
-                <div id="planContent" class="text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-100 p-5 rounded-lg text-sm shadow-inner mx-2"></div>
-            </section>
-        </main>
+<body class="bg-gray-50 p-4">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg space-y-4">
+        <h1 class="text-xl font-bold text-blue-600 text-center">AI旅程作成くん</h1>
+        
+        <input type="password" id="apiKey" placeholder="Gemini APIキーを貼り付け" class="w-full p-2 border rounded">
+        <input type="text" id="destination" placeholder="目的地（例：仙台）" class="w-full p-2 border rounded">
+        
+        <button onclick="generate()" id="btn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">
+            旅程を作成する
+        </button>
+
+        <div id="out" class="mt-4 p-4 bg-gray-100 rounded hidden whitespace-pre-wrap text-sm"></div>
     </div>
+
     <script>
-        async function generatePlan() {
-            const apiKey = document.getElementById('apiKey').value.trim();
+        async function generate() {
+            const key = document.getElementById('apiKey').value.trim();
             const dest = document.getElementById('destination').value;
-            const days = document.getElementById('days').value;
-            const theme = document.getElementById('theme').value;
+            const btn = document.getElementById('btn');
+            const out = document.getElementById('out');
 
-            if (!apiKey || !dest) return alert("APIキーと目的地を入力してください");
+            if(!key || !dest) return alert("入力してください");
 
-            const loader = document.getElementById('loader');
-            const resultArea = document.getElementById('resultArea');
-            const submitBtn = document.getElementById('submitBtn');
-
-            loader.classList.remove('hidden');
-            resultArea.classList.add('hidden');
-            submitBtn.disabled = true;
-
-            const prompt = `${dest}への${days}の旅行プランを${theme}をテーマに、タイムスケジュール形式で詳しく作成してください。`;
+            btn.innerText = "作成中...";
+            btn.disabled = true;
 
             try {
-                // v1beta を排除し、正式版の v1 エンドポイントを使用
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                
-                const response = await fetch(url, {
+                // 2026年最新：モデル名をあえて「gemini-1.5-flash」のみに絞り、v1で叩く
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
+                const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: dest + "の1泊2日旅行プランを詳しく作って" }] }] })
                 });
 
-                const data = await response.json();
+                const data = await res.json();
+                if(!res.ok) throw new Error(data.error.message);
 
-                if (!response.ok) {
-                    throw new Error(data.error?.message || "接続エラーが発生しました");
-                }
-
-                const text = data.candidates[0].content.parts[0].text;
-                document.getElementById('planContent').innerText = text;
-                resultArea.classList.remove('hidden');
+                out.innerText = data.candidates[0].content.parts[0].text;
+                out.classList.remove('hidden');
             } catch (e) {
-                alert("エラーが発生しました: " + e.message);
+                alert("エラー：" + e.message);
             } finally {
-                loader.classList.add('hidden');
-                submitBtn.disabled = false;
+                btn.innerText = "旅程を作成する";
+                btn.disabled = false;
             }
         }
     </script>
