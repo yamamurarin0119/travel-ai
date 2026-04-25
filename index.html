@@ -6,48 +6,61 @@
     <title>AI旅程作成くん</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 p-4">
+<body class="bg-gray-50 p-4 font-sans">
     <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg space-y-4">
-        <h1 class="text-xl font-bold text-blue-600 text-center">AI旅程作成くん</h1>
+        <h1 class="text-xl font-bold text-blue-600 text-center border-b pb-2">AI旅程作成くん</h1>
         
-        <input type="password" id="apiKey" placeholder="Gemini APIキーを貼り付け" class="w-full p-2 border rounded">
-        <input type="text" id="destination" placeholder="目的地（例：仙台）" class="w-full p-2 border rounded">
+        <p class="text-xs text-gray-500 text-center">※APIキーを貼って目的地を入力してください</p>
+
+        <input type="password" id="apiKey" placeholder="Gemini APIキーを貼り付け" class="w-full p-3 border rounded shadow-sm">
+        <input type="text" id="destination" placeholder="目的地（例：仙台）" class="w-full p-3 border rounded shadow-sm">
         
-        <button onclick="generate()" id="btn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">
+        <button onclick="generate()" id="btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold shadow-md transition active:scale-95">
             旅程を作成する
         </button>
 
-        <div id="out" class="mt-4 p-4 bg-gray-100 rounded hidden whitespace-pre-wrap text-sm"></div>
+        <div id="out" class="mt-4 p-4 bg-gray-50 border rounded-lg hidden whitespace-pre-wrap text-sm leading-relaxed"></div>
     </div>
 
     <script>
         async function generate() {
             const key = document.getElementById('apiKey').value.trim();
-            const dest = document.getElementById('destination').value;
+            const dest = document.getElementById('destination').value.trim();
             const btn = document.getElementById('btn');
             const out = document.getElementById('out');
 
-            if(!key || !dest) return alert("入力してください");
+            if(!key || !dest) return alert("APIキーと目的地を入力してください");
 
-            btn.innerText = "作成中...";
+            btn.innerText = "AIが考え中...";
             btn.disabled = true;
+            out.classList.add('hidden');
 
             try {
-                // 2026年最新：モデル名をあえて「gemini-1.5-flash」のみに絞り、v1で叩く
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`;
+                // モデル名とAPIバージョンの最も確実な組み合わせ
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`;
+                
                 const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: dest + "の1泊2日旅行プランを詳しく作って" }] }] })
+                    body: JSON.stringify({ 
+                        contents: [{ parts: [{ text: dest + "の1泊2日の旅行プランを、具体的な時間も含めて詳しく作ってください。" }] }] 
+                    })
                 });
 
                 const data = await res.json();
-                if(!res.ok) throw new Error(data.error.message);
+                
+                if(!res.ok) {
+                    throw new Error(data.error?.message || "通信エラー");
+                }
 
-                out.innerText = data.candidates[0].content.parts[0].text;
-                out.classList.remove('hidden');
+                if (data.candidates && data.candidates[0].content) {
+                    out.innerText = data.candidates[0].content.parts[0].text;
+                    out.classList.remove('hidden');
+                } else {
+                    throw new Error("AIの回答が空でした。もう一度試してください。");
+                }
             } catch (e) {
-                alert("エラー：" + e.message);
+                alert("エラーが発生しました：\n" + e.message);
             } finally {
                 btn.innerText = "旅程を作成する";
                 btn.disabled = false;
