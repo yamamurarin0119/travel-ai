@@ -6,61 +6,63 @@
     <title>AI旅程作成くん</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 p-4 font-sans">
-    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-lg space-y-4">
-        <h1 class="text-xl font-bold text-blue-600 text-center border-b pb-2">AI旅程作成くん</h1>
+<body class="bg-slate-50 p-4">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-xl space-y-4">
+        <h1 class="text-xl font-bold text-blue-600 text-center">AI旅程作成くん</h1>
         
-        <p class="text-xs text-gray-500 text-center">※APIキーを貼って目的地を入力してください</p>
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-gray-400">GEMINI API KEY</label>
+            <input type="password" id="key" placeholder="AI Studioで確認したキーを貼る" class="w-full p-3 border rounded-lg bg-gray-50">
+        </div>
 
-        <input type="password" id="apiKey" placeholder="Gemini APIキーを貼り付け" class="w-full p-3 border rounded shadow-sm">
-        <input type="text" id="destination" placeholder="目的地（例：仙台）" class="w-full p-3 border rounded shadow-sm">
+        <div class="space-y-2">
+            <label class="text-xs font-bold text-gray-400">DESTINATION</label>
+            <input type="text" id="dest" placeholder="目的地（例：仙台、台湾）" class="w-full p-3 border rounded-lg bg-gray-50">
+        </div>
         
-        <button onclick="generate()" id="btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold shadow-md transition active:scale-95">
+        <button onclick="go()" id="btn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition">
             旅程を作成する
         </button>
 
-        <div id="out" class="mt-4 p-4 bg-gray-50 border rounded-lg hidden whitespace-pre-wrap text-sm leading-relaxed"></div>
+        <div id="out" class="mt-4 p-4 bg-blue-50 text-blue-900 rounded-lg hidden whitespace-pre-wrap text-sm leading-relaxed"></div>
     </div>
 
     <script>
-        async function generate() {
-            const key = document.getElementById('apiKey').value.trim();
-            const dest = document.getElementById('destination').value.trim();
+        async function go() {
+            const k = document.getElementById('key').value.trim();
+            const d = document.getElementById('dest').value.trim();
             const btn = document.getElementById('btn');
             const out = document.getElementById('out');
 
-            if(!key || !dest) return alert("APIキーと目的地を入力してください");
+            if(!k || !d) return alert("入力してください");
 
-            btn.innerText = "AIが考え中...";
+            btn.innerText = "AIがプランを作成中...";
             btn.disabled = true;
             out.classList.add('hidden');
 
             try {
-                // モデル名とAPIバージョンの最も確実な組み合わせ
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`;
+                // AI Studioで動いた「gemini-1.5-flash」を、最新の正式URLで呼び出します
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${k}`;
                 
-                const res = await fetch(url, {
+                const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        contents: [{ parts: [{ text: dest + "の1泊2日の旅行プランを、具体的な時間も含めて詳しく作ってください。" }] }] 
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: d + "の1泊2日の旅行プランを、具体的な時間も含めて詳しく作ってください。" }] }]
                     })
                 });
 
-                const data = await res.json();
-                
-                if(!res.ok) {
-                    throw new Error(data.error?.message || "通信エラー");
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error?.message || "エラーが発生しました");
                 }
 
-                if (data.candidates && data.candidates[0].content) {
-                    out.innerText = data.candidates[0].content.parts[0].text;
-                    out.classList.remove('hidden');
-                } else {
-                    throw new Error("AIの回答が空でした。もう一度試してください。");
-                }
+                // AIの返答を表示
+                out.innerText = data.candidates[0].content.parts[0].text;
+                out.classList.remove('hidden');
             } catch (e) {
-                alert("エラーが発生しました：\n" + e.message);
+                alert("エラー内容: " + e.message);
             } finally {
                 btn.innerText = "旅程を作成する";
                 btn.disabled = false;
