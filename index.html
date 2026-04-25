@@ -44,7 +44,7 @@
                         </select>
                     </div>
                 </div>
-                <button onclick="generatePlan()" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg">
+                <button onclick="generatePlan()" id="submitBtn" class="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg transition active:scale-95">
                     旅程を自動生成する
                 </button>
             </section>
@@ -52,9 +52,9 @@
                 <div class="loading w-10 h-10 border-4 border-gray-200 rounded-full mb-4"></div>
                 <p class="text-gray-500 text-sm">AIがプランを練っています...</p>
             </div>
-            <section id="resultArea" class="hidden space-y-4">
+            <section id="resultArea" class="hidden space-y-4 px-2">
                 <h2 class="text-xl font-bold text-gray-800 border-b-2 border-blue-500 pb-1">作成された旅程</h2>
-                <div id="planContent" class="text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-100 p-4 rounded-lg text-sm"></div>
+                <div id="planContent" class="text-gray-700 leading-relaxed whitespace-pre-wrap bg-gray-100 p-4 rounded-lg text-sm shadow-inner"></div>
             </section>
         </main>
     </div>
@@ -67,15 +67,20 @@
 
             if (!apiKey || !dest) return alert("APIキーと目的地を入力してください");
 
-            document.getElementById('loader').classList.remove('hidden');
-            document.getElementById('resultArea').classList.add('hidden');
-            document.getElementById('submitBtn').disabled = true;
+            const loader = document.getElementById('loader');
+            const resultArea = document.getElementById('resultArea');
+            const submitBtn = document.getElementById('submitBtn');
 
-            const prompt = `${dest}への${days}の旅行プランを${theme}をテーマに、具体的な時間配分も含めて作成してください。`;
+            loader.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-50');
+
+            const prompt = `${dest}への${days}の旅行プランを${theme}をテーマに、具体的な時間配分も含めて詳しく作成してください。`;
 
             try {
-                // モデル名を最新の 'gemini-1.5-flash' に固定して呼び出し
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // エラーの原因だった v1beta を v1 に修正しました
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -85,22 +90,21 @@
                     })
                 });
 
+                const data = await response.json();
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error.message || "API呼び出しエラー");
+                    throw new Error(data.error?.message || "APIエラーが発生しました");
                 }
 
-                const data = await response.json();
                 const text = data.candidates[0].content.parts[0].text;
-
                 document.getElementById('planContent').innerText = text;
-                document.getElementById('resultArea').classList.remove('hidden');
+                resultArea.classList.remove('hidden');
             } catch (e) {
-                alert("エラー: " + e.message);
-                console.error(e);
+                alert("エラーが発生しました: " + e.message);
             } finally {
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('submitBtn').disabled = false;
+                loader.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50');
             }
         }
     </script>
