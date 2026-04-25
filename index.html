@@ -76,11 +76,11 @@
             submitBtn.disabled = true;
             submitBtn.classList.add('opacity-50');
 
-            const prompt = `${dest}への${days}の旅行プランを${theme}をテーマに、具体的な時間配分も含めて詳しく作成してください。`;
+            const prompt = `${dest}への${days}の旅行プランを${theme}をテーマに、具体的な時間配分も含めて作成してください。`;
 
             try {
-                // エラーの原因だった v1beta を v1 に修正しました
-                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // モデル名を絶対パス形式に変更し、v1beta1を使用
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -93,14 +93,19 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error?.message || "APIエラーが発生しました");
+                    throw new Error(data.error?.message || "エラーが発生しました");
                 }
 
-                const text = data.candidates[0].content.parts[0].text;
-                document.getElementById('planContent').innerText = text;
-                resultArea.classList.remove('hidden');
+                if (data.candidates && data.candidates[0].content) {
+                    const text = data.candidates[0].content.parts[0].text;
+                    document.getElementById('planContent').innerText = text;
+                    resultArea.classList.remove('hidden');
+                } else {
+                    throw new Error("旅程を生成できませんでした。目的地を変えて試してください。");
+                }
+
             } catch (e) {
-                alert("エラーが発生しました: " + e.message);
+                alert("エラー: " + e.message);
             } finally {
                 loader.classList.add('hidden');
                 submitBtn.disabled = false;
