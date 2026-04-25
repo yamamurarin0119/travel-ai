@@ -69,13 +69,14 @@
 
             document.getElementById('loader').classList.remove('hidden');
             document.getElementById('resultArea').classList.add('hidden');
-            document.getElementById('submitBtn').disabled = true;
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
 
-            const prompt = `${dest}への${days}の旅行プランを${theme}をテーマに、具体的な時間配分も含めて作成してください。`;
+            const prompt = `${dest}への${days}の旅行プランを${theme}をテーマに作成してください。`;
 
             try {
-                // モデル名を単純な 'gemini-pro' に変更し、最も汎用的なエンドポイントを使用
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+                // モデル指定を一番確実な最新の gemini-1.5-flash-latest に変更
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -86,20 +87,16 @@
                 });
 
                 const data = await response.json();
-
-                if (!response.ok) {
-                    // もし gemini-pro でもダメな場合、別のモデル名を自動で試すためのエラーメッセージ
-                    throw new Error(data.error?.message || "エラーが発生しました");
-                }
+                if (!response.ok) throw new Error(data.error?.message || "接続エラー");
 
                 const text = data.candidates[0].content.parts[0].text;
                 document.getElementById('planContent').innerText = text;
                 document.getElementById('resultArea').classList.remove('hidden');
             } catch (e) {
-                alert("エラー: " + e.message + "\n\n※APIキーが有効になるまで数分かかる場合があります。");
+                alert("エラー: " + e.message);
             } finally {
                 document.getElementById('loader').classList.add('hidden');
-                document.getElementById('submitBtn').disabled = false;
+                submitBtn.disabled = false;
             }
         }
     </script>
