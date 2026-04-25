@@ -11,13 +11,13 @@
         <h1 class="text-xl font-bold text-blue-600 text-center">AI旅程作成くん</h1>
         
         <div class="space-y-2">
-            <label class="text-xs font-bold text-gray-400">GEMINI API KEY</label>
-            <input type="password" id="key" placeholder="AI Studioで確認したキーを貼る" class="w-full p-3 border rounded-lg bg-gray-50">
+            <label class="text-xs font-bold text-gray-400 uppercase">Key</label>
+            <input type="password" id="key" placeholder="APIキーを貼り付け" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
         </div>
 
         <div class="space-y-2">
-            <label class="text-xs font-bold text-gray-400">DESTINATION</label>
-            <input type="text" id="dest" placeholder="目的地（例：仙台、台湾）" class="w-full p-3 border rounded-lg bg-gray-50">
+            <label class="text-xs font-bold text-gray-400 uppercase">Destination</label>
+            <input type="text" id="dest" placeholder="目的地（例：仙台）" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
         </div>
         
         <button onclick="go()" id="btn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition">
@@ -34,35 +34,34 @@
             const btn = document.getElementById('btn');
             const out = document.getElementById('out');
 
-            if(!k || !d) return alert("入力してください");
+            if(!k || !d) return alert("入力を確認してください");
 
-            btn.innerText = "AIがプランを作成中...";
+            btn.innerText = "プラン作成中...";
             btn.disabled = true;
             out.classList.add('hidden');
 
             try {
-                // AI Studioで動いた「gemini-1.5-flash」を、最新の正式URLで呼び出します
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${k}`;
+                // エラーの原因だった v1beta を「v1」に変更
+                const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${k}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: d + "の1泊2日の旅行プランを、具体的な時間も含めて詳しく作ってください。" }] }]
+                        contents: [{ parts: [{ text: d + "の1泊2日旅行プランを、時間配分も含めて詳しく作ってください。" }] }]
                     })
                 });
 
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error?.message || "エラーが発生しました");
+                    throw new Error(data.error?.message || "接続に失敗しました");
                 }
 
-                // AIの返答を表示
                 out.innerText = data.candidates[0].content.parts[0].text;
                 out.classList.remove('hidden');
             } catch (e) {
-                alert("エラー内容: " + e.message);
+                alert("エラーが発生しました: " + e.message);
             } finally {
                 btn.innerText = "旅程を作成する";
                 btn.disabled = false;
